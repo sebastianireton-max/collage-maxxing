@@ -1,0 +1,22 @@
+{
+  "name": "collage-maxxing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prospect -> brand identity -> personalized demo site -> cold outreach engine.",
+  "scripts": {
+    "brand": "tsx src/cli.ts brand",
+    "demo": "tsx src/cli.ts demo",
+    "run": "tsx src/cli.ts run",
+    "check": "tsx src/check.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
