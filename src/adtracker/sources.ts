@@ -134,6 +134,31 @@ export class ManualAdSource implements AdSource {
 }
 
 /**
+ * The ad's own id, per platform.
+ *
+ * Falling back to "last path segment" is what makes every TikTok ad collapse
+ * onto one record: `library.tiktok.com/ads/detail/?item_id=777` ends in the
+ * literal segment "detail", so every pasted TikTok ad gets the same id and,
+ * behind a unique key, overwrites the previous one. Each platform carries its
+ * id in a query parameter, so read the parameter and only fall back to the path
+ * when the segment is not an obvious route word.
+ */
+const ID_PARAMS = ['id', 'item_id', 'ad_id', 'adId', 'creative_id'];
+const ROUTE_WORDS = new Set(['detail', 'details', 'ads', 'ad', 'library', 'view', 'preview', 'p']);
+
+export function adIdFromUrl(parsed: URL): string {
+  for (const key of ID_PARAMS) {
+    const v = parsed.searchParams.get(key)?.trim();
+    if (v) return v;
+  }
+  const last = parsed.pathname.split('/').filter(Boolean).pop();
+  // A route word is not an identity. Prefer the whole URL over a fake id that
+  // silently merges unrelated ads into one row.
+  if (last && !ROUTE_WORDS.has(last.toLowerCase())) return last;
+  return parsed.toString();
+}
+
+/**
  * Parses pasted Ad Library / TikTok / LinkedIn ad URLs into stub Ad records.
  * Deliberately records only what the URL proves — an id and a permalink. The
  * creative is filled in by whoever opens it, rather than guessed here.
@@ -147,10 +172,7 @@ export function adsFromUrls(urls: string[], competitor: Competitor): Ad[] {
     try { parsed = new URL(url); } catch { continue; }
 
     const host = parsed.hostname.replace(/^www\./, '');
-    const id =
-      parsed.searchParams.get('id') ||
-      parsed.pathname.split('/').filter(Boolean).pop() ||
-      url;
+    const id = adIdFromUrl(parsed);
 
     out.push({
       id,

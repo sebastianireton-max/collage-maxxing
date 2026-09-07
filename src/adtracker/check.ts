@@ -183,7 +183,22 @@ export async function runAdTrackerChecks(it: Check): Promise<void> {
     assert.equal(ads.length, 2, 'duplicate pasted twice is one ad; junk is dropped');
     assert.equal(ads[0]!.id, '555');
     assert.equal(ads[1]!.source, 'tiktok');
+    // The bug this guards: "last path segment" yields the literal word "detail"
+    // for every TikTok ad, so behind a unique key they all overwrite one row.
+    assert.equal(ads[1]!.id, '777', 'the tiktok id is item_id, not the route word');
+    assert.notEqual(ads[1]!.id, 'detail');
     assert.equal(ads[0]!.creative.kind, 'text', 'media kind is unknown from a url, so do not claim video');
+  });
+
+
+  await it('never mistakes a route word for an ad id', () => {
+    const one = adsFromUrls(['https://library.tiktok.com/ads/detail/?item_id=1'], competitor);
+    const two = adsFromUrls(['https://library.tiktok.com/ads/detail/?item_id=2'], competitor);
+    assert.notEqual(one[0]!.id, two[0]!.id, 'two different ads must not share an id');
+    // With no id parameter at all, fall back to the full url rather than a word
+    // every ad on the platform would share.
+    const bare = adsFromUrls(['https://library.tiktok.com/ads/detail/'], competitor);
+    assert.ok(bare[0]!.id.includes('library.tiktok.com'));
   });
 
   await it('manual source only returns the asked-for competitor', async () => {
