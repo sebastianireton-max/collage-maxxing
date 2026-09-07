@@ -8,6 +8,7 @@ import { contrastRatio, isBrandCandidate, parseColor, readableOn, saturation, to
 import { cleanLabel, extractPalette, extractType } from './brand/extract.js';
 import { generateDemoSite } from './site/generate.js';
 import type { BrandProfile } from './brand/types.js';
+import { runAdTrackerChecks } from './adtracker/check.js';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -143,5 +144,14 @@ it('never invents sections when a prospect nav is unusable', () => {
   assert.ok(html.includes('What we do'), 'falls back to neutral labels');
   assert.ok(!html.includes('Implants'), 'does not carry over another brand"s services');
 });
+
+// The ad-tracker checks are async (stubbed fetch), so they need an awaiting
+// variant of the same runner rather than a second reporting path.
+const itAsync = async (name: string, fn: () => void | Promise<void>) => {
+  try { await fn(); passed++; }
+  catch (e) { console.error(`FAIL  ${name}\n      ${e instanceof Error ? e.message : e}`); process.exitCode = 1; }
+};
+
+await runAdTrackerChecks(itAsync);
 
 console.log(process.exitCode ? `\ncheck: FAILED (${passed} passed)` : `\ncheck: ${passed} passed`);
